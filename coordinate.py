@@ -1,6 +1,8 @@
 import numpy as np
 from math import radians ,degrees , sqrt
-import mavsdk
+import paramters
+
+
 async def get_geo_pos(drone):
 
     """
@@ -20,6 +22,11 @@ async def get_geo_pos(drone):
         return default_coordinates
 
     return latitude, longitude, altitude
+
+
+
+
+
 
 async def geodetic_to_cartesian_ned(drone,latitude_i, longitude_i, altitude_i):
 
@@ -53,7 +60,7 @@ async def geodetic_to_cartesian_ned(drone,latitude_i, longitude_i, altitude_i):
     ned_coordinates = np.dot(rotation_matrix, np.array([ned_x, ned_y, ned_z]))
     x_final ,y_final,z_final =ned_coordinates
 
-    print(f"At cartzian position: x_i={x_final}, y_i={y_final}, z_i={z_final} meters")
+    #print(f"At cartzian position: x_i={x_final}, y_i={y_final}, z_i={z_final} meters")
     return x_final,y_final,z_final
 
 
@@ -92,3 +99,9 @@ async def cartesian_to_geodetic(x, y, z, drone):
 
 
     return latitude, longitude, altitude
+
+
+
+
+
+

@@ -3,11 +3,11 @@
 
 import asyncio
 import mavsdk
-from mavsdk import System
+from mavsdk import System,telemetry
 from mavsdk.offboard import (OffboardError, VelocityBodyYawspeed)
 from coordinate import (get_geo_pos,geodetic_to_cartesian_ned)
 from math import radians ,degrees , sqrt
-import numpy as np
+
 
 
 async def first_setup(drone):
@@ -27,14 +27,17 @@ async def first_setup(drone):
         return
 
 async def offboard(drone):
+
+    #need to change this code that if the drone is mid air the drone need to go to land
     print("-- Starting offboard")
     try:
         await drone.offboard.start()
     except OffboardError as error:
         print(f"Starting offboard mode failed with error code: \
                   {error._result.result}")
-        print("-- Disarming")
-        await drone.action.disarm()
+
+        print("stop offbord")
+        await drone.offboard.stop()
         return
 
     return
@@ -47,10 +50,59 @@ async def absolute_yaw(drone):
 
 
 
+async def spare(x_dist, y_dist, z_dist, drone):
+    while True:
+        dist = sqrt(x_dist ** 2 + y_dist ** 2 + z_dist ** 2)
+        x_local, y_local, z_local = await geodetic_to_cartesian_ned(drone,latitude_i, longitude_i, altitude_i)
+        local_dist = sqrt(x_local ** 2 + y_local ** 2 + z_local ** 2)
+        accuracy = dist - local_dist
+
+        if accuracy < 0.1:
+            return 1
+        else:
+            await asyncio.sleep(0.1)
+
 
 
 
 async def takeoff_velocity(drone,target_altitude):
+    #only move at the z at the start of the drone
+    x=y=0
+    print("-- Arming")
+    await drone.action.arm()
+
+    print("-- Setting initial setpoint")
+    await drone.offboard.set_velocity_body(
+        VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0))
+
+    await offboard(drone) #change to offboard
+
+    print("-- only climb")
+    await drone.offboard.set_velocity_body(
+        VelocityBodyYawspeed(0.0, 0.0, -1.0, 0))
+
+
+    if await spare(x,y,target_altitude,drone)==1 :
+        print(await geodetic_to_cartesian_ned(drone,latitude_i, longitude_i, altitude_i))
+        await drone.offboard.set_velocity_body(
+            VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0))
+        await drone.offboard.stop()
+    else:
+        print ("problem")
+
+    return
+
+
+
+async def x_axis(drone,target):
+    #move to cartzian position at the x axis
+
+    await drone.offboard.set_velocity_body(
+        VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0))
+    await offboard(drone)
+    print("start flight at x axes ")
+    drone.offboard.set_velocity_body(
+        VelocityBodyYawspeed(1.0, 0.0, 0.0, 0.0))
 
 
 
@@ -63,15 +115,11 @@ async def takeoff_velocity(drone,target_altitude):
 
 
 
-
-
-
-
-
-
 async def run():
+
     """ Does Offboard control using velocity body coordinates. """
     global latitude_i, longitude_i, altitude_i, x_i, y_i, z_i
+    latitude_i = longitude_i = altitude_i = 0
 
     # Connect to the drone
     drone = System()
@@ -81,22 +129,27 @@ async def run():
     await first_setup(drone)
     geo_pos = await get_geo_pos(drone)
     latitude_i, longitude_i, altitude_i = geo_pos
-    x_i, y_i, z_i = await geodetic_to_cartesian_ned(drone, latitude_i, longitude_i, altitude_i)
+    x_i, y_i, z_i = await geodetic_to_cartesian_ned(drone,latitude_i, longitude_i, altitude_i)
+    print (x_i,y_i,z_i)
 
-    offboard(drone)
-    print("-- Arming")
-    await drone.action.arm()
+    target_altitude = int(input("Enter the target altitude in meters: "))
 
-    print("-- Setting initial setpoint")
-    await drone.offboard.set_velocity_body(
-        VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0))
-
-    await offboard(drone)
-
-    print("-- only climb")
-    await drone.offboard.set_velocity_body(
-        VelocityBodyYawspeed(0.0, 0.0, -1.0, 0))
-    await asyncio.sleep(20)
+    await takeoff_velocity(drone,target_altitude)
+    #
+    # print("-- Arming")
+    # await drone.action.arm()
+    #
+    # print("-- Setting initial setpoint")
+    # await drone.offboard.set_velocity_body(
+    #     VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0))
+    #
+    # await offboard(drone)
+    #
+    # print("-- only climb")
+    # await drone.offboard.set_velocity_body(
+    #     VelocityBodyYawspeed(0.0, 0.0, -1.0, 0))
+    # await asyncio.sleep(5)
+    # print (await geodetic_to_cartesian_ned(drone, latitude_i, longitude_i, altitude_i))
 
     print("-- Turn back anti-clockwise")
     await drone.offboard.set_velocity_body(
