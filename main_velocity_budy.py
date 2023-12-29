@@ -5,7 +5,7 @@ import asyncio
 import time
 from mavsdk import System,telemetry
 from mavsdk.offboard import (OffboardError, VelocityBodyYawspeed)
-from coordinate import (get_geo_pos,geodetic_to_cartesian_ned)
+from coordinate import (get_geo_pos,geodetic_to_cartesian_budy)
 from math import radians ,degrees , sqrt
 import subprocess
 
@@ -60,7 +60,7 @@ async def absolute_yaw(drone):
 async def spare(x_dist, y_dist, z_dist, drone):
     while True:
         dist = sqrt(x_dist ** 2 + y_dist ** 2 + z_dist ** 2)
-        x_local, y_local, z_local = await geodetic_to_cartesian_ned(drone,latitude_i, longitude_i, altitude_i)
+        x_local, y_local, z_local = await geodetic_to_cartesian_budy(drone,latitude_i, longitude_i, altitude_i)
         local_dist = sqrt(x_local ** 2 + y_local ** 2 + z_local ** 2)
         accuracy = dist - local_dist
 
@@ -99,7 +99,7 @@ async def takeoff_velocity(drone,target_altitude):
 async def x_axis(drone,target,latitude_i, longitude_i, altitude_i):
     #move to cartzian position at the x axis
 
-    x_local,y_local,z_local = await geodetic_to_cartesian_ned(drone,latitude_i, longitude_i, altitude_i)
+    x_local,y_local,z_local = await geodetic_to_cartesian_budy(drone,latitude_i, longitude_i, altitude_i)
 
     await drone.offboard.set_velocity_body(
         VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0))
@@ -115,13 +115,13 @@ async def x_axis(drone,target,latitude_i, longitude_i, altitude_i):
             VelocityBodyYawspeed(-1.0, 0.0, 0.0, 0.0))
 
     await spare(target,y_local,z_local,drone)
-    print (await geodetic_to_cartesian_ned(drone,latitude_i, longitude_i, altitude_i))
+    print (await geodetic_to_cartesian_budy(drone,latitude_i, longitude_i, altitude_i))
     return
 
 async def y_axis(drone, target, latitude_i, longitude_i, altitude_i):
     # Move to Cartesian position along the Y-axis
 
-    x_local, y_local, z_local = await geodetic_to_cartesian_ned(drone, latitude_i, longitude_i, altitude_i)
+    x_local, y_local, z_local = await geodetic_to_cartesian_budy(drone, latitude_i, longitude_i, altitude_i)
 
     await drone.offboard.set_velocity_body(
         VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0))
@@ -138,7 +138,7 @@ async def y_axis(drone, target, latitude_i, longitude_i, altitude_i):
             VelocityBodyYawspeed(0.0, -1.0, 0.0, 0.0))
 
     await spare(x_local, target, z_local, drone)
-    print (await geodetic_to_cartesian_ned(drone,latitude_i, longitude_i, altitude_i))
+    print (await geodetic_to_cartesian_budy(drone,latitude_i, longitude_i, altitude_i))
     return
 
 async def camera_control():
@@ -156,7 +156,7 @@ async def main():
     await first_setup(drone)
     geo_pos = await get_geo_pos(drone)
     latitude_i, longitude_i, altitude_i = geo_pos
-    x_i, y_i, z_i = await geodetic_to_cartesian_ned(drone, latitude_i, longitude_i, altitude_i)
+    x_i, y_i, z_i = await geodetic_to_cartesian_budy(drone, latitude_i, longitude_i, altitude_i)
 
 
     target_altitude = int(input("Enter the target altitude in meters: "))

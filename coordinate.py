@@ -1,5 +1,5 @@
 import numpy as np
-from math import radians ,degrees , sqrt
+from math import radians ,degrees , sqrt,cos,sin
 import paramters
 
 
@@ -24,17 +24,23 @@ async def get_geo_pos(drone):
     return latitude, longitude, altitude
 
 
+import numpy as np
+from math import radians, cos, sin
+
+import numpy as np
+from math import radians, cos, sin
+
+import numpy as np
+from math import radians, cos, sin
 
 
-
-
-async def geodetic_to_cartesian_ned(drone,latitude_i, longitude_i, altitude_i):
-
+async def geodetic_to_cartesian_budy(drone, latitude_i, longitude_i, altitude_i, rotation_angle_degrees=0):
     """
     :param drone: connect string
-    :return: make geo position to cartazian one and rotate it to right hand axis ned coordinate
+    :return: make geo position to Cartesian one and rotate it to the right-hand axis budy coordinate
     """
-    latitude,longitude,altitude = await get_geo_pos(drone)
+    latitude, longitude, altitude = await get_geo_pos(drone)
+
     # Constants for Earth (assuming it's a perfect sphere)
     radius_earth = 6371000.0  # in meters
 
@@ -52,18 +58,27 @@ async def geodetic_to_cartesian_ned(drone,latitude_i, longitude_i, altitude_i):
     delta_altitude = altitude - altitude_i
 
     # Convert geodetic coordinates to Cartesian coordinates (NED convention)
-    ned_x = radius_earth * delta_lat
-    ned_y = radius_earth * delta_lon
-    ned_z = delta_altitude  # Negate altitude to align with NED convention
+    ned_x = radius_earth * delta_lon * cos(lat_rad)
+    ned_y = radius_earth * delta_lat
+    ned_z = -delta_altitude  # Negate altitude to align with NED convention
 
-    rotation_matrix = np.array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
+    # Get the absolute yaw angle from telemetry
+    async for attitude_info in drone.telemetry.attitude_euler():
+        absolute_yaw = radians(attitude_info.yaw_deg)
+        break  # Exit the loop after obtaining the yaw
+
+    # Calculate the rotation matrix based on the absolute yaw and additional rotation angle
+    rotation_angle = radians(90)  # Rotate by 90 degrees to make the forward direction the y-axis
+    total_angle = absolute_yaw + rotation_angle_degrees
+    rotation_matrix = np.array([[cos(total_angle), -sin(total_angle), 0],
+                                [sin(total_angle), cos(total_angle), 0],
+                                [0, 0, -1]])  # Negate the Z-axis component to point downward
+
     ned_coordinates = np.dot(rotation_matrix, np.array([ned_x, ned_y, ned_z]))
-    x_final ,y_final,z_final =ned_coordinates
-
-    #print(f"At cartzian position: x_i={x_final}, y_i={y_final}, z_i={z_final} meters")
-    return x_final,y_final,z_final
+    x_final, y_final, z_final = ned_coordinates
 
 
+    return x_final, y_final, z_final
 
 async def cartesian_to_geodetic(x, y, z, drone):
     # the revers function - from cartazian go to geo
