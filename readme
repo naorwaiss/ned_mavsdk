@@ -1,1 +1,5 @@
-start the code here 
+i save this code to the final project to see what the drone do 
+explain:
+the spare function is gave us the end to the motion of the drone 
+the motion of the drone came from the velocity -- so i need to stop the drone 
+coordinate is function of matamtic to get the position from geo wg -84 to cartazian x,y,z near budy (not ned) right hand position 
