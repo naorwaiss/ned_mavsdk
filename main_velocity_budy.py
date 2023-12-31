@@ -154,6 +154,8 @@ async def main():
     #await drone.connect(system_address="udp://:14540")
     await drone.connect(system_address="serial:///dev/ttyTHS1")
 
+
+    
     await first_setup(drone)
     geo_pos = await get_geo_pos(drone)
     latitude_i, longitude_i, altitude_i = geo_pos
